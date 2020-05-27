@@ -7,9 +7,8 @@ import base64
 from botocore.exceptions import ClientError
 
 def create_secret():
-
-    #secret_name = "2017/12/2020/01.admin01.clsbgb6c.cit.clsnet"
-    region_name = "us-east-1"
+    secret_name = "secret3"
+    region_name = "us-east-2"
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
@@ -20,19 +19,21 @@ def create_secret():
 
     try:
         response = client.create_secret(
-            Name='prod/secret',
+            Name=secret_name,
             Description='secret for prod',
             SecretString='real secret to be stored'
         )
-    except:
-        raise
+    except ClientError as ClientExp:
+        print "Client Error: ", ClientExp
+    except Exception as exp:
+        print "error: ", exp
     else:
         print "create secret: ", response
 
 def get_secret():
 
-    secret_name = "prod/secret1"
-    region_name = "us-east-1"
+    secret_name = "secret3"
+    region_name = "us-east-2"
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
@@ -69,23 +70,92 @@ def get_secret():
             # We can't find the resource that you asked for.
             # Deal with the exception here, and/or rethrow at your discretion.
             #raise e
-            print "secret not found"
-    except:
-        print "exception: ", 
-        raise e
+            print "secret not found %s", e
+            #raise e
+    except Exception as exception:
+        print "exception: ", exception 
     else:
         print "get secret: ", get_secret_value_response
         # Decrypts secret using the associated KMS CMK.
         # Depending on whether the secret is a string or binary, one of these fields will be populated.
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
-            print "Secret: ", secret
+            print "Secret: ", secret, " ARN: ", get_secret_value_response["ARN"]
         else:
             decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
             print "decoded_binary_secret: ", decoded_binary_secret
+
+
+
+def update_secret():
+
+    secret_name = "secret3"
+    region_name = "us-east-2"
+
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/secretsmanager.html#SecretsManager.Client.update_secret
+    # SecretsManager.Client.exceptions.InvalidParameterException
+    # SecretsManager.Client.exceptions.InvalidRequestException
+    # SecretsManager.Client.exceptions.LimitExceededException
+    # SecretsManager.Client.exceptions.EncryptionFailure
+    # SecretsManager.Client.exceptions.ResourceExistsException
+    # SecretsManager.Client.exceptions.ResourceNotFoundException
+    # SecretsManager.Client.exceptions.MalformedPolicyDocumentException
+    # SecretsManager.Client.exceptions.InternalServiceError
+    # SecretsManager.Client.exceptions.PreconditionNotMetException
+
+    try:
+        get_secret_value_response = client.update_secret(
+            SecretId=secret_name,
+            SecretString="Update2")
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'InvalidParameterException':
+            # You provided an invalid value for a parameter.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidRequestException':
+            # You provided a parameter value that is not valid for the current state of the resource.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+            # We can't find the resource that you asked for.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            #raise e
+            print "secret not found: ", e
+            #raise e
+    except Exception as exception:
+        print "exception: ", exception 
+    else:
+        print "update secret: ", get_secret_value_response
                 
     # Your code goes here. 
 
 
+
 #create_secret()
-get_secret()
+#get_secret()
+update_secret()
+
+# import boto3
+# from botocore.exceptions import ClientError
+# import json
+
+# def lambda_handler(event, context):
+#     #region_name = "us-east-2"
+#     s3_client = boto3.client('s3')
+#     try:
+#         response = s3_client.list_objects(Bucket="rh-lambda-out-2019")
+#     except ClientError as e:
+#         return False
+#     else:
+#         print "response: ", response
+#     return True
+
+
+# lambda_handler(0, 0)
